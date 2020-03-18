@@ -1,1 +1,7 @@
 ---
+
+- name: jitsi deb repo apt key
+  apt_key:
+    #id: 9FED2BCBDCD29CDF762678CBAED4B06F473041FA
+    url: https://download.jitsi.org/jitsi-key.gpg.key
+    state: present
