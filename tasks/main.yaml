@@ -1,7 +1,81 @@
 ---
+- import_role:
+    name: nginx
+
+- meta: flush_handlers
 
 - name: jitsi deb repo apt key
   apt_key:
-    #id: 9FED2BCBDCD29CDF762678CBAED4B06F473041FA
+    id: 66A9CD0595D6AFA247290D3BEF8B479E2DC1389C
     url: https://download.jitsi.org/jitsi-key.gpg.key
     state: present
+    keyring: /etc/apt/trusted.gpg.d/jitsi.gpg
+
+- name: jitsi deb repo apt repository
+  apt_repository:
+    repo: deb https://download.jitsi.org stable/
+    filename: jitsi
+
+- include_role:
+    name: certificate
+  vars:
+    certificate_name: jitsi
+    certificate_directory: /etc/ssl
+    certificate_key_usage:
+      - digitalSignature
+      - keyEncipherment
+    certificate_extended_key_usage:
+      - serverAuth
+    certificate_common_name: "{{ jitsi_meet_server_name }}"
+    certificate_alt_names: "{{ jitsi_meet_server_names | map('regex_replace', '(.*)','DNS:\\1') | list }}"
+
+- name: set the jitsi package so that it does not create a certificate
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/cert-choice
+    value: 'I want to use my own certificate'
+    vtype: select
+
+- name: set the jitsi key path
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/cert-choice
+    value: /etc/ssl/private/jitsi.key.pem
+    vtype: string
+
+- name: set the jitsi certificate path
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/cert-path-crt
+    value: /etc/ssl/certs/jitsi.fullchain.pem
+    vtype: string
+
+- name: set the jitsi videobridge hostname for jitsi-meet
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/jvb-hostname
+    value: "{{ jitsi_meet_server_name }}"
+    vtype: string
+
+- name: set the jitsi videobridge hostname
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-videobridge/jvb-hostname
+    value: "{{ jitsi_meet_server_name }}"
+    vtype: string
+
+- name: set debconf jitsi-meet/jvb-serve to false
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/jvb-serve
+    value: 'false'
+    vtype: boolean
+
+- name: jitsi debian packages
+  apt:
+    pkg: jitsi-meet
+
+- include_role:
+    name: nginx
+  vars:
+    nginx_vhosts: "{{ jitsi_nginx_vhosts }}"

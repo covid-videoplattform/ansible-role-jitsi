@@ -1,1 +1,4 @@
 ---
+jitsi_meet_server_names:
+  - "{{ inventory_hostname }}"
+jitsi_meet_server_aliases: []

@@ -1,1 +1,27 @@
 ---
+jitsi_meet_server_name: "{{ jitsi_meet_server_names[0] }}"
+jitsi_nginx_vhosts:
+  - name: jitsi
+    server_names: "{{ jitsi_meet_server_names }}"
+    custom: |-
+      root /usr/share/jitsi-meet;
+      index index.html index.htm;
+
+      location /config.js {
+          alias /etc/jitsi/meet/{{ jitsi_meet_server_name }}-config.js;
+      }
+
+      location ~ ^/([a-zA-Z0-9=\?]+)$ {
+          rewrite ^/(.*)$ / break;
+      }
+
+      location / {
+          ssi on;
+      }
+
+      # BOSH
+      location /http-bind {
+          proxy_pass      http://localhost:5280/http-bind;
+          proxy_set_header X-Forwarded-For $remote_addr;
+          proxy_set_header Host $http_host;
+      }
